@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -72,7 +72,7 @@
 #endif
 
 #if ENABLED(IIC_BL24CXX_EEPROM)
-  #include "lcd/dwin/eeprom_BL24CXX.h"
+  #include "libs/BL24CXX.h"
 #endif
 
 #if ENABLED(DIRECT_STEPPING)
@@ -216,6 +216,7 @@ PGMSTR(M24_STR, "M24");
 PGMSTR(SP_P_STR, " P");  PGMSTR(SP_T_STR, " T");
 PGMSTR(X_STR,     "X");  PGMSTR(Y_STR,     "Y");  PGMSTR(Z_STR,     "Z");  PGMSTR(E_STR,     "E");
 PGMSTR(X_LBL,     "X:"); PGMSTR(Y_LBL,     "Y:"); PGMSTR(Z_LBL,     "Z:"); PGMSTR(E_LBL,     "E:");
+PGMSTR(SP_A_STR, " A");  PGMSTR(SP_B_STR, " B");  PGMSTR(SP_C_STR, " C");
 PGMSTR(SP_X_STR, " X");  PGMSTR(SP_Y_STR, " Y");  PGMSTR(SP_Z_STR, " Z");  PGMSTR(SP_E_STR, " E");
 PGMSTR(SP_X_LBL, " X:"); PGMSTR(SP_Y_LBL, " Y:"); PGMSTR(SP_Z_LBL, " Z:"); PGMSTR(SP_E_LBL, " E:");
 
@@ -392,6 +393,13 @@ void disable_all_steppers() {
 #else
   constexpr bool did_pause_print = false;
 #endif
+
+/**
+ * A Print Job exists when the timer is running or SD printing
+ */
+bool printJobOngoing() {
+  return print_job_timer.isRunning() || IS_SD_PRINTING();
+}
 
 /**
  * Printing is active when the print job timer is running
@@ -689,7 +697,7 @@ void idle(TERN_(ADVANCED_PAUSE_FEATURE, bool no_stepper_sleep/*=false*/)) {
 
   // Handle Power-Loss Recovery
   #if ENABLED(POWER_LOSS_RECOVERY) && PIN_EXISTS(POWER_LOSS)
-    recovery.outage();
+    if (printJobOngoing()) recovery.outage();
   #endif
 
   // Run StallGuard endstop checks
@@ -1163,7 +1171,7 @@ void setup() {
   #if ENABLED(IIC_BL24CXX_EEPROM)
     BL24CXX::init();
     const uint8_t err = BL24CXX::check();
-    SERIAL_ECHO_TERNARY(err, "I2C_EEPROM Check ", "failed", "succeeded", "!\n");
+    SERIAL_ECHO_TERNARY(err, "BL24CXX Check ", "failed", "succeeded", "!\n");
   #endif
 
   #if ENABLED(DWIN_CREALITY_LCD)
